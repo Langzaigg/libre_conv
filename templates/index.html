@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>华东院文件格式转换工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 600px;
+            animation: slideIn 0.5s ease-out;
+            border: 1px solid #eaeaea;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+
+        .dropzone {
+            border: 2px dashed #ddd;
+            padding: 40px;
+            text-align: center;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #fafafa;
+        }
+
+        .dropzone:hover {
+            border-color: #4a90e2;
+            background-color: #f0f7ff;
+        }
+
+        .dropzone.dragover {
+            border-color: #4a90e2;
+            background-color: #eef6ff;
+            transform: scale(1.01);
+        }
+
+        .dropzone p {
+            color: #666;
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .dropzone-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            color: #4a90e2;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        button {
+            width: 100%;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #357abd;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: #ccc;
+        }
+
+        .file-list {
+            margin-top: 20px;
+            padding: 0;
+            list-style-type: none;
+        }
+
+        .file-list li {
+            background-color: #f8f9fa;
+            border: 1px solid #eee;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .file-icon {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #4a90e2;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .status-message {
+            text-align: center;
+            margin-top: 15px;
+            color: #4a90e2;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .error-message {
+            background-color: #fff2f0;
+            color: #ff4d4f;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+            border: 1px solid #ffccc7;
+            font-size: 14px;
+        }
+
+        .format-description {
+            font-size: 13px;
+            color: #888;
+            margin-top: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📄 华东院文件格式转换工具</h1>
+
+        <form id="upload-form">
+            <div class="form-group">
+                <label for="target_format">选择目标格式:</label>
+                <select name="target_format" id="target_format" required>
+                    <option value="office">Office文档 (doc→docx, xls→xlsx, ppt→pptx)</option>
+                    <option value="pdf">PDF文档 (所有文档转换为PDF)</option>
+                </select>
+                <div class="format-description" id="format-description">
+                    将旧版Office文档转换为新版格式
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="dropzone" id="dropzone">
+                    <div class="dropzone-icon">📁</div>
+                    <p>拖动文件到这里，或点击选择文件</p>
+                </div>
+                <input type="file" name="files" id="file-input" multiple>
+            </div>
+
+            <ul class="file-list" id="file-list"></ul>
+
+            <button type="submit" id="submit-btn">开始转换</button>
+
+            <div class="progress-container" id="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="status-message" id="status-message">正在转换文件...</div>
+            </div>
+
+            <div class="error-message" id="error-message"></div>
+        </form>
+    </div>
+
+    <script>
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('file-input');
+        const fileList = document.getElementById('file-list');
+        const uploadForm = document.getElementById('upload-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const progressContainer = document.getElementById('progress-container');
+        const progressFill = document.getElementById('progress-fill');
+        const statusMessage = document.getElementById('status-message');
+        const errorMessage = document.getElementById('error-message');
+        const targetFormat = document.getElementById('target_format');
+        const formatDescription = document.getElementById('format-description');
+
+        let selectedFiles = null;
+
+        // Update format description
+        targetFormat.addEventListener('change', () => {
+            if (targetFormat.value === 'office') {
+                formatDescription.textContent = '将旧版Office文档转换为新版格式';
+            } else {
+                formatDescription.textContent = '将所有文档转换为PDF格式';
+            }
+        });
+
+        // Drag and drop events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        dropzone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+            dropzone.classList.remove('dragover');
+        }
+
+        dropzone.addEventListener('dragenter', () => {
+            dropzone.classList.add('dragover');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+
+        dropzone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            handleFiles(files);
+        });
+
+        function handleFiles(files) {
+            selectedFiles = files;
+            updateFileList(files);
+        }
+
+        function updateFileList(files) {
+            fileList.innerHTML = '';
+            for (let i = 0; i < files.length; i++) {
+                const li = document.createElement('li');
+                const icon = getFileIcon(files[i].name);
+                li.innerHTML = `<span class="file-icon">${icon}</span><span>${files[i].name}</span>`;
+                fileList.appendChild(li);
+            }
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = {
+                'doc': '📘',
+                'docx': '📘',
+                'xls': '📗',
+                'xlsx': '📗',
+                'ppt': '📙',
+                'pptx': '📙',
+                'pdf': '📕'
+            };
+            return icons[ext] || '📄';
+        }
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!selectedFiles || selectedFiles.length === 0) {
+                showError('请先选择文件');
+                return;
+            }
+
+            // Disable submit button
+            submitBtn.disabled = true;
+            errorMessage.style.display = 'none';
+            progressContainer.style.display = 'block';
+            progressFill.style.width = '50%';
+
+            const formData = new FormData();
+            for (let i = 0; i < selectedFiles.length; i++) {
+                formData.append('files', selectedFiles[i]);
+            }
+            formData.append('target_format', targetFormat.value);
+
+            try {
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || '转换失败');
+                }
+
+                progressFill.style.width = '100%';
+                statusMessage.textContent = '转换完成！正在下载...';
+
+                // Get filename from Content-Disposition header
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = 'converted_file';
+                if (contentDisposition) {
+                    // Try to extract filename*=utf-8''encoded_filename
+                    const utf8Matches = /filename\*=utf-8''([^;]+)/.exec(contentDisposition);
+                    if (utf8Matches && utf8Matches[1]) {
+                        filename = decodeURIComponent(utf8Matches[1]);
+                    } else {
+                        // Fallback to filename="name"
+                        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+                        if (matches && matches[1]) {
+                            filename = matches[1].replace(/['"]/g, '');
+                        }
+                    }
+                }
+
+                // Download file
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                // Reset form
+                setTimeout(() => {
+                    resetForm();
+                }, 1500);
+
+            } catch (error) {
+                showError(error.message);
+                submitBtn.disabled = false;
+                progressContainer.style.display = 'none';
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = '❌ ' + message;
+            errorMessage.style.display = 'block';
+        }
+
+        function resetForm() {
+            uploadForm.reset();
+            fileList.innerHTML = '';
+            selectedFiles = null;
+            submitBtn.disabled = false;
+            progressContainer.style.display = 'none';
+            progressFill.style.width = '0%';
+            statusMessage.textContent = '正在转换文件...';
+        }
+    </script>
+</body>
+
+</html>
