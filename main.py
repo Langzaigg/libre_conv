@@ -9,10 +9,66 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
+import asyncio
+import time
+from contextlib import asynccontextmanager
+
+# Cleanup configuration
+CLEANUP_INTERVAL = 3600  # Run cleanup every hour
+FILE_MAX_AGE = 3600      # Delete files older than 1 hour
+
+async def cleanup_old_files():
+    """
+    Background task to clean up old files
+    """
+    while True:
+        try:
+            current_time = time.time()
+            folders_to_clean = [UPLOAD_FOLDER, DOWNLOAD_FILES_FOLDER, DOWNLOAD_ZIPS_FOLDER]
+            
+            print(f"[{datetime.now()}] Starting file cleanup...")
+            count = 0
+            
+            for folder in folders_to_clean:
+                if not os.path.exists(folder):
+                    continue
+                    
+                for filename in os.listdir(folder):
+                    file_path = os.path.join(folder, filename)
+                    # Skip if it's not a file
+                    if not os.path.isfile(file_path):
+                        continue
+                        
+                    # Check file age
+                    file_age = current_time - os.path.getmtime(file_path)
+                    if file_age > FILE_MAX_AGE:
+                        try:
+                            os.remove(file_path)
+                            count += 1
+                        except Exception as e:
+                            print(f"Error deleting {file_path}: {e}")
+            
+            print(f"[{datetime.now()}] Cleanup finished. Deleted {count} files.")
+            
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
+            
+        # Wait for next cleanup
+        await asyncio.sleep(CLEANUP_INTERVAL)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start cleanup task
+    task = asyncio.create_task(cleanup_old_files())
+    yield
+    # Shutdown: Cancel task (optional, as app shutdown kills tasks)
+    task.cancel()
+
 app = FastAPI(
     title="华东院文件格式转换工具",
     description="文档格式转换API，支持Office文档和PDF转换",
-    version="2.0.0"
+    version="2.1.0",
+    lifespan=lifespan
 )
 
 # Configuration
